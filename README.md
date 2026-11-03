@@ -19,6 +19,11 @@ Switch with number keys 1-4:
 
 **Other ideas for future:** Kunai, Smoke Bomb, Caltrops, Nunchaku, Blowgun, Tetsubishi.
 
+## New in this update
+- **Dash** (Shift) — costs stamina, short cooldown, blue trail
+- **Camera follow** — world is larger (1200x900), camera smoothly tracks the ninja
+- **Sound effects** — Web Audio tones for attacks, hits, dash, power-ups, explosions
+
 ## Art Assets
 - Village background (dusk ninja village with cherry blossoms)
 - Ninja character sprite
@@ -27,29 +32,9 @@ Switch with number keys 1-4:
 
 Place them in `assets/` folder.
 
-## Comprehensive Build Plan
-
-### Phase 1 — Core Prototype (Mostly Complete)
-- [x] Top-down movement
-- [x] Multiple ninja weapons
-- [x] Zombie AI and variants
-- [x] Waves, score, high-score
-- [x] Obstacles and power-ups
-- [x] Village background + character/zombie sprites
-
-### Phase 2 — Feel & Polish
-- Stamina / dash
-- More weapon animations and effects
-- Sound
-- Better camera
-
-### Phase 3+ 
-- More weapons and progression
-- Mobile support
-- GitHub Pages
-
-### Controls
+## Controls
 - **WASD / Arrows** — Move
+- **Shift** — Dash (uses stamina)
 - **Mouse** — Aim
 - **Left Click** — Attack with current weapon
 - **1-4** — Switch weapons
