@@ -208,6 +208,7 @@
     let obstacles = [];
     let wave = 1;
     let zombiesToSpawn = 6;
+    let zombiesSpawned = 0;
     let spawnTimer = 0;
     let waveClearTimer = 0;
     let highScore = parseInt(localStorage.getItem('nvzHigh') || '0');
@@ -556,8 +557,24 @@
         if (dist > 0) {
           const nx = z.x + (dx / dist) * z.speed * speedMod;
           const ny = z.y + (dy / dist) * z.speed * speedMod;
-          if (!collidesObstacle(nx, z.y, z.size)) z.x = nx;
-          if (!collidesObstacle(z.x, ny, z.size)) z.y = ny;
+          const ox = z.x, oy = z.y;
+          if (z.sideTimer > 0 && collidesObstacle(nx, ny, z.size)) {
+            // Sidestep along the obstacle until the direct path is clear, so a blocked zombie cannot stall the wave
+            z.sideTimer--;
+            const sx = z.x - (dy / dist) * z.sidestep * z.speed * speedMod;
+            const sy = z.y + (dx / dist) * z.sidestep * z.speed * speedMod;
+            if (!collidesObstacle(sx, z.y, z.size)) z.x = sx;
+            if (!collidesObstacle(z.x, sy, z.size)) z.y = sy;
+            if (z.x === ox && z.y === oy) z.sidestep = -z.sidestep;
+          } else {
+            z.sideTimer = 0;
+            if (!collidesObstacle(nx, z.y, z.size)) z.x = nx;
+            if (!collidesObstacle(z.x, ny, z.size)) z.y = ny;
+            if (Math.hypot(z.x - ox, z.y - oy) < z.speed * speedMod * 0.25) {
+              if (!z.sidestep) z.sidestep = Math.random() < 0.5 ? 1 : -1;
+              z.sideTimer = 240;
+            }
+          }
         }
         if (dist < player.size + z.size - 4) {
           player.health -= 0.35 + wave * 0.04;
@@ -588,15 +605,18 @@
       if (shake > 0) shake *= 0.85;
 
       spawnTimer++;
-      if (zombies.length < zombiesToSpawn && spawnTimer > 35) {
+      // zombiesToSpawn is the wave's total budget, not a cap on zombies alive
+      if (zombiesSpawned < zombiesToSpawn && spawnTimer > 35) {
         spawnZombie();
+        zombiesSpawned++;
         spawnTimer = 0;
       }
-      if (zombies.length === 0) {
+      if (zombies.length === 0 && zombiesSpawned >= zombiesToSpawn) {
         waveClearTimer++;
         if (waveClearTimer > 90) {
           wave++;
           zombiesToSpawn = Math.min(18, 5 + Math.floor(wave * 1.6));
+          zombiesSpawned = 0;
           waveClearTimer = 0;
           player.health = Math.min(player.maxHealth, player.health + 8);
           generateObstacles();
@@ -626,7 +646,7 @@
       }
       ctx.translate(-camera.x, -camera.y);
 
-      if (images.village.complete) {
+      if (images.village.naturalWidth) {
         ctx.drawImage(images.village, 0, 0, 1200, 900);
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.fillRect(0, 0, 1200, 900);
@@ -665,13 +685,13 @@
       ctx.globalAlpha = 1;
 
       for (const p of projectiles) {
-        if (p.type === 'shuriken' && images.shuriken.complete) {
+        if (p.type === 'shuriken' && images.shuriken.naturalWidth) {
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate(Date.now() / 100);
           ctx.drawImage(images.shuriken, -12, -12, 24, 24);
           ctx.restore();
-        } else if (p.type === 'grenade' && images.grenade.complete) {
+        } else if (p.type === 'grenade' && images.grenade.naturalWidth) {
           ctx.drawImage(images.grenade, p.x - 10, p.y - 10, 20, 20);
         } else {
           ctx.fillStyle = p.type === 'kunai' ? '#bdc3c7' : '#f1c40f';
@@ -682,7 +702,7 @@
       }
 
       for (const z of zombies) {
-        if (images.zombie.complete) {
+        if (images.zombie.naturalWidth) {
           ctx.drawImage(images.zombie, z.x - z.size, z.y - z.size, z.size * 2, z.size * 2);
         } else {
           ctx.fillStyle = z.exploder ? '#e67e22' : '#27ae60';
@@ -697,7 +717,7 @@
         ctx.fillRect(z.x - barW/2, z.y - z.size - 12, barW * (z.health / z.maxHealth), 4);
       }
 
-      if (images.ninja.complete) {
+      if (images.ninja.naturalWidth) {
         ctx.drawImage(images.ninja, player.x - player.size, player.y - player.size, player.size * 2, player.size * 2);
       } else {
         ctx.fillStyle = '#3498db';
@@ -755,6 +775,7 @@
       powerups = [];
       wave = 1;
       zombiesToSpawn = 6;
+      zombiesSpawned = 0;
       spawnTimer = 0;
       waveClearTimer = 0;
       shake = 0;
