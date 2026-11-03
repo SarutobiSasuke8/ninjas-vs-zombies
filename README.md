@@ -11,15 +11,20 @@ You are a lone ninja in a ruined Japanese village at dusk. Zombies swarm from al
 Fits Rokumon Games: original, short-session, distinctive style, browser-native, worth discovering.
 
 ## Weapons
-Switch with number keys 1-4:
+Switch with number keys 1-6:
 1. **Shuriken** — Fast ranged throwing stars
 2. **Katana** — Powerful melee slash
 3. **Grenade** — Area-of-effect bomb
 4. **Kusarigama** — Chain sickle with reach
-
-**Other ideas for future:** Kunai, Smoke Bomb, Caltrops, Nunchaku, Blowgun, Tetsubishi.
+5. **Kunai** — Faster, harder-hitting ranged
+6. **Smoke Bomb** — Slows nearby zombies temporarily
 
 ## New in this update
+- **Exploder zombies** (orange, appear from wave 5+) — explode on death, damaging nearby zombies
+- **Kunai** and **Smoke Bomb** weapons
+- **Pause menu** (P or Esc)
+
+## Previous features
 - **Dash** (Shift) — costs stamina, short cooldown, blue trail
 - **Camera follow** — world is larger (1200x900), camera smoothly tracks the ninja
 - **Sound effects** — Web Audio tones for attacks, hits, dash, power-ups, explosions
@@ -37,7 +42,8 @@ Place them in `assets/` folder.
 - **Shift** — Dash (uses stamina)
 - **Mouse** — Aim
 - **Left Click** — Attack with current weapon
-- **1-4** — Switch weapons
+- **1-6** — Switch weapons
+- **P / Esc** — Pause
 
 ---
 
