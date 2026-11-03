@@ -12,7 +12,7 @@ Fits Rokumon Games: original, short-session, distinctive style, browser-native, 
 
 ## Comprehensive Build Plan
 
-### Phase 1 — Core Prototype (In Progress)
+### Phase 1 — Core Prototype (Mostly Complete)
 - [x] Top-down movement (WASD / arrows)
 - [x] Mouse-aim + shoot throwing stars
 - [x] Melee slash
@@ -26,8 +26,8 @@ Fits Rokumon Games: original, short-session, distinctive style, browser-native, 
 - [x] Screen shake on damage / hits
 - [x] Basic zombie variants (runner, tank)
 - [x] Wave clear heal
-- [ ] More map obstacles / cover
-- [ ] Power-up drops
+- [x] Map obstacles / cover (block movement + projectiles, reshuffle each wave)
+- [x] Power-up drops (heal, speed, damage, multi-shot)
 
 ### Phase 2 — Feel & Polish
 - Stamina system (dash on Shift)
@@ -39,9 +39,9 @@ Fits Rokumon Games: original, short-session, distinctive style, browser-native, 
 - Pause menu
 
 ### Phase 3 — Progression & Content
-- Power-ups (speed, damage, multi-shot, heal)
+- More power-up variety and stacking
 - Weapon upgrades / temporary buffs
-- Procedural or hand-crafted maps with obstacles
+- Procedural maps with more obstacle types
 - Leaderboards
 - Unlockable ninja skins or starting perks
 - Daily challenge seed
@@ -69,6 +69,13 @@ Fits Rokumon Games: original, short-session, distinctive style, browser-native, 
 - **Mouse** — Aim
 - **Left Click** — Throw shuriken
 - **Space** — Melee slash
+- Walk over glowing orbs for power-ups
+
+### Power-ups
+- **Green** — Heal (+25 HP)
+- **Blue** — Speed boost (temporary)
+- **Red** — Damage boost (temporary)
+- **Purple** — Multi-shot (temporary)
 
 ---
 
@@ -80,7 +87,7 @@ Fits Rokumon Games: original, short-session, distinctive style, browser-native, 
 
 ## Roadmap Status
 - [x] Repo + design doc
-- [x] Playable prototype with core loop, high-score, variants, and feedback
+- [x] Playable prototype with core loop, high-score, variants, obstacles, and power-ups
 - [ ] Polish pass
 - [ ] Art upgrade
 - [ ] Mobile support
