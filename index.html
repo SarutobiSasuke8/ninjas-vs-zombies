@@ -33,7 +33,7 @@
     #buffs { color: #2ecc71; font-size: 14px; }
     #weapon { color: #f39c12; }
     #stamina { color: #3498db; }
-    #gameover {
+    #gameover, #pause {
       position: absolute;
       inset: 0;
       display: none;
@@ -43,7 +43,8 @@
       background: rgba(0,0,0,0.82);
       text-align: center;
     }
-    #gameover h1 { color: #e74c3c; margin: 0 0 16px; font-size: 48px; }
+    #gameover h1, #pause h1 { color: #e74c3c; margin: 0 0 16px; font-size: 48px; }
+    #pause h1 { color: #3498db; }
     #gameover .stats { font-size: 20px; margin: 4px 0; }
     button {
       margin-top: 20px;
@@ -87,9 +88,14 @@
     <h1>NINJAS VS ZOMBIES</h1>
     <p>WASD / Arrows to move • Shift to dash</p>
     <p>Mouse to aim • Left Click to attack</p>
-    <p>1-4 to switch weapons</p>
+    <p>1-6 to switch weapons • P or Esc to pause</p>
     <p>Walk over glowing orbs for power-ups</p>
     <button onclick="startGame()">Start Run</button>
+  </div>
+  <div id="pause">
+    <h1>PAUSED</h1>
+    <p>Press P or Esc to resume</p>
+    <button onclick="togglePause()">Resume</button>
   </div>
   <div id="gameover">
     <h1>YOU DIED</h1>
@@ -114,6 +120,7 @@
       buffs: document.getElementById('buffs'),
       gameover: document.getElementById('gameover'),
       start: document.getElementById('start'),
+      pause: document.getElementById('pause'),
       finalScore: document.getElementById('finalScore'),
       finalWave: document.getElementById('finalWave'),
       finalKills: document.getElementById('finalKills'),
@@ -144,6 +151,7 @@
     function sfxHit() { playTone(150, 0.1, 'square', 0.1); }
     function sfxDash() { playTone(400, 0.12, 'sine', 0.1); }
     function sfxPowerup() { playTone(600, 0.2, 'sine', 0.1); }
+    function sfxExplode() { playTone(60, 0.5, 'sawtooth', 0.25); }
 
     const images = {};
     const imageList = ['village', 'ninja', 'zombie', 'shuriken', 'katana', 'grenade', 'kusarigama'];
@@ -155,18 +163,21 @@
     let keys = {};
     let mouse = { x: 450, y: 300 };
     let gameRunning = false;
+    let paused = false;
     let shake = 0;
 
     const weapons = [
       { name: 'Shuriken', key: '1', type: 'ranged', damage: 28, cooldown: 10 },
       { name: 'Katana', key: '2', type: 'melee', damage: 50, cooldown: 25 },
       { name: 'Grenade', key: '3', type: 'aoe', damage: 40, cooldown: 60 },
-      { name: 'Kusarigama', key: '4', type: 'chain', damage: 35, cooldown: 40 }
+      { name: 'Kusarigama', key: '4', type: 'chain', damage: 35, cooldown: 40 },
+      { name: 'Kunai', key: '5', type: 'ranged', damage: 35, cooldown: 14 },
+      { name: 'Smoke Bomb', key: '6', type: 'utility', damage: 0, cooldown: 90 }
     ];
     let currentWeapon = 0;
 
     const player = {
-      x: 450, y: 300,
+      x: 600, y: 450,
       size: 20,
       speed: 3.4,
       baseSpeed: 3.4,
@@ -185,7 +196,8 @@
       dashCooldown: 0,
       dashTime: 0,
       dashVx: 0,
-      dashVy: 0
+      dashVy: 0,
+      smokeTimer: 0
     };
 
     let camera = { x: 0, y: 0 };
@@ -221,12 +233,15 @@
 
     window.addEventListener('keydown', e => {
       keys[e.key.toLowerCase()] = true;
-      if (e.key >= '1' && e.key <= '4') {
+      if (e.key >= '1' && e.key <= '6') {
         currentWeapon = parseInt(e.key) - 1;
         ui.weapon.textContent = `Weapon: ${weapons[currentWeapon].name} (${e.key})`;
       }
-      if (e.key === 'Shift' && gameRunning && player.dashCooldown <= 0 && player.stamina >= 30) {
+      if (e.key === 'Shift' && gameRunning && !paused && player.dashCooldown <= 0 && player.stamina >= 30) {
         dash();
+      }
+      if ((e.key === 'p' || e.key === 'Escape') && gameRunning) {
+        togglePause();
       }
     });
     window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
@@ -236,7 +251,7 @@
       mouse.y = e.clientY - rect.top + camera.y;
     });
     canvas.addEventListener('mousedown', e => {
-      if (e.button === 0 && player.cooldown <= 0 && gameRunning) {
+      if (e.button === 0 && player.cooldown <= 0 && gameRunning && !paused) {
         initAudio();
         attack();
       }
@@ -246,6 +261,12 @@
       initAudio();
       ui.start.style.display = 'none';
       restart(true);
+    }
+
+    function togglePause() {
+      if (!gameRunning) return;
+      paused = !paused;
+      ui.pause.style.display = paused ? 'flex' : 'none';
     }
 
     function collidesObstacle(x, y, r) {
@@ -284,16 +305,17 @@
         sfxShuriken();
         const shots = 1 + (player.multiShot > 0 ? 1 : 0);
         const spread = shots > 1 ? 0.2 : 0;
+        const speed = w.name === 'Kunai' ? 12 : 10;
         for (let s = 0; s < shots; s++) {
           const a = angle + (s - (shots-1)/2) * spread;
           projectiles.push({
             x: player.x, y: player.y,
-            vx: Math.cos(a) * 10,
-            vy: Math.sin(a) * 10,
+            vx: Math.cos(a) * speed,
+            vy: Math.sin(a) * speed,
             life: 50,
-            size: 6,
+            size: w.name === 'Kunai' ? 5 : 6,
             damage: Math.round(w.damage * player.damageMult),
-            type: 'shuriken'
+            type: w.name === 'Kunai' ? 'kunai' : 'shuriken'
           });
         }
       } else if (w.type === 'melee') {
@@ -347,6 +369,17 @@
           vy: Math.sin(angle) * 6,
           life: 15, color: '#bdc3c7'
         });
+      } else if (w.type === 'utility') {
+        player.smokeTimer = 180;
+        for (let i = 0; i < 20; i++) {
+          particles.push({
+            x: player.x, y: player.y,
+            vx: (Math.random()-0.5)*4,
+            vy: (Math.random()-0.5)*4,
+            life: 30, color: '#95a5a6'
+          });
+        }
+        sfxPowerup();
       }
     }
 
@@ -354,6 +387,23 @@
       z.health -= dmg;
       sfxHit();
       if (z.health <= 0) {
+        if (z.exploder) {
+          sfxExplode();
+          for (let other of zombies) {
+            if (other !== z && Math.hypot(other.x - z.x, other.y - z.y) < 70) {
+              other.health -= 30;
+            }
+          }
+          for (let i = 0; i < 12; i++) {
+            particles.push({
+              x: z.x, y: z.y,
+              vx: (Math.random()-0.5)*6,
+              vy: (Math.random()-0.5)*6,
+              life: 15, color: '#e67e22'
+            });
+          }
+          shake = 10;
+        }
         player.score += 12 + wave * 3;
         player.kills++;
         if (Math.random() < 0.18) {
@@ -401,8 +451,10 @@
       else { x = -30; y = Math.random() * worldH; }
 
       const variant = Math.random();
-      let size = 18, speed = 0.9, health = 40;
-      if (variant > 0.75 && wave > 2) {
+      let size = 18, speed = 0.9, health = 40, exploder = false;
+      if (variant > 0.85 && wave > 4) {
+        size = 20; speed = 0.7; health = 35; exploder = true;
+      } else if (variant > 0.75 && wave > 2) {
         size = 16; speed = 1.7 + wave * 0.08; health = 25;
       } else if (variant > 0.55 && wave > 3) {
         size = 24; speed = 0.6; health = 80 + wave * 10;
@@ -410,12 +462,12 @@
 
       zombies.push({
         x, y, size, speed: speed + wave * 0.04,
-        health, maxHealth: health
+        health, maxHealth: health, exploder
       });
     }
 
     function update() {
-      if (!gameRunning) return;
+      if (!gameRunning || paused) return;
 
       player.speed = player.baseSpeed * (player.speedBuffTimer > 0 ? 1.45 : 1);
       player.damageMult = player.damageBuffTimer > 0 ? 1.6 : 1;
@@ -424,6 +476,7 @@
       if (player.damageBuffTimer > 0) player.damageBuffTimer--;
       if (player.multiShotTimer > 0) player.multiShotTimer--;
       if (player.dashCooldown > 0) player.dashCooldown--;
+      if (player.smokeTimer > 0) player.smokeTimer--;
       if (player.stamina < player.maxStamina) player.stamina = Math.min(player.maxStamina, player.stamina + 0.3);
 
       if (player.dashTime > 0) {
@@ -499,9 +552,10 @@
         const z = zombies[i];
         const dx = player.x - z.x, dy = player.y - z.y;
         const dist = Math.hypot(dx, dy);
+        let speedMod = player.smokeTimer > 0 && dist < 100 ? 0.3 : 1;
         if (dist > 0) {
-          const nx = z.x + (dx / dist) * z.speed;
-          const ny = z.y + (dy / dist) * z.speed;
+          const nx = z.x + (dx / dist) * z.speed * speedMod;
+          const ny = z.y + (dy / dist) * z.speed * speedMod;
           if (!collidesObstacle(nx, z.y, z.size)) z.x = nx;
           if (!collidesObstacle(z.x, ny, z.size)) z.y = ny;
         }
@@ -555,6 +609,7 @@
       if (player.speedBuffTimer > 0) buffText.push('SPEED');
       if (player.damageBuffTimer > 0) buffText.push('DMG');
       if (player.multiShotTimer > 0) buffText.push('MULTI');
+      if (player.smokeTimer > 0) buffText.push('SMOKE');
       ui.buffs.textContent = buffText.length ? 'Buffs: ' + buffText.join(' • ') : '';
 
       ui.health.textContent = Math.max(0, Math.floor(player.health));
@@ -619,7 +674,7 @@
         } else if (p.type === 'grenade' && images.grenade.complete) {
           ctx.drawImage(images.grenade, p.x - 10, p.y - 10, 20, 20);
         } else {
-          ctx.fillStyle = '#f1c40f';
+          ctx.fillStyle = p.type === 'kunai' ? '#bdc3c7' : '#f1c40f';
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
           ctx.fill();
@@ -630,7 +685,7 @@
         if (images.zombie.complete) {
           ctx.drawImage(images.zombie, z.x - z.size, z.y - z.size, z.size * 2, z.size * 2);
         } else {
-          ctx.fillStyle = '#27ae60';
+          ctx.fillStyle = z.exploder ? '#e67e22' : '#27ae60';
           ctx.beginPath();
           ctx.arc(z.x, z.y, z.size, 0, Math.PI * 2);
           ctx.fill();
@@ -650,7 +705,7 @@
         ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
         ctx.fill();
       }
-      if (gameRunning) {
+      if (gameRunning && !paused) {
         const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
         ctx.strokeStyle = 'rgba(255,255,255,0.35)';
         ctx.lineWidth = 2;
@@ -665,6 +720,7 @@
 
     function endGame() {
       gameRunning = false;
+      paused = false;
       const isNew = player.score > highScore;
       if (isNew) {
         highScore = player.score;
@@ -678,6 +734,7 @@
       ui.finalWave.textContent = wave;
       ui.finalKills.textContent = player.kills;
       ui.gameover.style.display = 'flex';
+      ui.pause.style.display = 'none';
     }
 
     function restart(fromStart = false) {
@@ -691,6 +748,7 @@
       player.stamina = 100;
       player.dashCooldown = 0;
       player.dashTime = 0;
+      player.smokeTimer = 0;
       zombies = [];
       projectiles = [];
       particles = [];
@@ -701,9 +759,11 @@
       waveClearTimer = 0;
       shake = 0;
       camera.x = 0; camera.y = 0;
+      paused = false;
       generateObstacles();
       gameRunning = true;
       ui.gameover.style.display = 'none';
+      ui.pause.style.display = 'none';
       if (!fromStart) ui.start.style.display = 'none';
     }
 
